@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset='utf-8' />
+    <title>my First Map</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1' />
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.js"></script>
+    <style>
+        body { margin: 0; padding: 0; }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+   </style>
+</head>
+<body>
+   <div id='map'></div>
+   <script>
+    // My custom access token
+      mapboxgl.accessToken = 'pk.eyJ1IjoibW9hZGVuIiwiYSI6ImNtdms5cnBodTBwNG0yeHB4ZDR2ZWZwczIifQ.JqL18FAFo_Qk4YwNZZpMLA'; 
+      // map object properties defined
+      const mymap = new mapboxgl.Map({
+             container: 'map',
+             //style: 'mapbox://styles/mapbox/outdoors-v12',
+             //projection: 'globe', //Display the map as a globe since satellite-v9 defaults to Mercator
+             center: [-122.33838, 47.62316], //South Lake Union
+             zoom:15 //zoomed in for street edge detailedness.
+          });
+          mymap.on('style.load', () => {
+    mymap.setConfigProperty('basemap', 'lightPreset', 'dusk');
+    mymap.setConfigProperty('basemap', 'showPointOfInterestLabels', false);
+    mymap.setConfigProperty('basemap', 'show3dObjects', false); //removes 3d objects and features (buildings, trees, etc) from map
+    mymap.setConfigProperty('basemap', 'font', 'Faustina'); //Street labels (ex. 'mercer st') default font changed to Faustina font
+});
+
+// Justification of additional style properties above:
+    // I changed the street labels to be a stricter and very readable font (faustina) so that mapviewers can quickly identify what street is what and so that the letters are taking less space up.
+    // I set 3d objects to be false (which were true by default) to reduce clutter. Removing them is helpful in cases where 3d features aren't of too much imporatnace such as a transit map.
+
+    // code from the next step will go here!
+// user control features
+mymap.addControl(new mapboxgl.FullscreenControl()); //fullscreen button
+mymap.addControl(new mapboxgl.NavigationControl()); //navigation/orientation and zoom control
+
+</script>
+</body>
+</html>

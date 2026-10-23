@@ -4,7 +4,7 @@
 Seattle, Washington
 
 ## Geographic question
-How does the spatial availability of bike-share or scooter drop-offs compare across high-rent vs. low-rent neighborhoods?"
+"What is the spatial availability of (Lime) bike-share or scooter drop-offs in connection to rent/income level in neighborhoods?"
 
 ## Possible data
 Park boundaries, neighborhood boundaries, and population data, monthly rent or household income data.
