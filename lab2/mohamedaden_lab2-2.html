@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Lab Two City Map</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.js"></script>
+    <style>
+        body { margin: 0; padding: 0; }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+        /* Layout of the legend panel. */
+        #title {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px 15px;
+            border-radius: 3px;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            z-index: 1;
+        }
+
+        #legend {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 155px;
+            background: #fff;
+            margin-right: 20px;
+            margin-bottom: 40px;
+            padding: 10px 20px 10px 10px;
+            border-radius: 3px;
+            text-align: center;
+        }
+
+        /* Each row for a population value. */
+        .break {
+            position: relative;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* The circular symbol. */
+        .dot {
+            display: inline-block;
+            margin-top: 5px;
+            border-radius: 50%;
+            opacity: 0.6;
+        }
+
+        /* Label next to the symbol. */
+        .dot-label {
+            position: absolute;
+            top: 0;
+            right: 0;
+            font-style: italic;
+        }
+
+        /* Link color within the legend. */
+        #legend a {
+            color: black;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div id="title">Highlighting World City Population Size Distrubutions</div>
+    <div id="legend"></div>
+    <script>
+        // js legend
+        const legend = document.getElementById('legend');
+        const grades = [10000, 100000, 1000000, 5000000, 10000000]; //10k to 10m
+        const radii = [2, 4, 7, 11, 16];
+        const colors = ['#fcae91', '#fb6a4a', '#de2d26', '#a50f15', '#67000d'];
+        const labels = ['<strong>Population</strong>'];
+
+        for (let i = 0; i < grades.length; i++) {
+            const value = grades[i];
+            const diameter = 2 * radii[i];
+
+            labels.push(
+                '<p class="break"><i class="dot" style="background:' + colors[i] +
+                '; width:' + diameter + 'px; height:' + diameter +
+                'px;"></i> <span class="dot-label" style="top:' +
+                diameter / 2 + 'px;">' + value + '</span></p>'
+            );
+        }
+
+        const source =
+            '<p style="text-align:right; font-size:10pt;">Source: ' +
+            '<a href="https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/">Natural Earth</a></p>';
+
+        legend.innerHTML = labels.join('') + source;
+
+    </script>
+
+    <script>
+        mapboxgl.accessToken = 'pk.eyJ1IjoibW9hZGVuIiwiYSI6ImNtdms5cnBodTBwNG0yeHB4ZDR2ZWZwczIifQ.JqL18FAFo_Qk4YwNZZpMLA';
+        const mymap = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/dark-v11', //chose dark basemap to make features pop more
+            projection: 'globe',
+            center: [-96, 37.8],
+            zoom: 1
+        });
+        
+        // Adding atmospheric depth
+        mymap.on('style.load', () => {
+            mymap.setFog({});
+        });
+
+        mymap.on('load', () => {
+            mymap.addSource('population', {
+                type: 'geojson',
+                data: 'data/world-cities.geojson' //loading geojson file
+            });
+
+            // addlayer call
+            mymap.addLayer({
+                id: 'city-pop-layer',
+                type: 'circle',
+                source: 'population',
+                paint: {
+                   // defining circle radius attributes
+                    'circle-radius': [
+                        'interpolate', ['linear'],
+                        //circle radius scales by prev_radius * 2 -> 2,4,8,16,32 -> changed scale to be
+                        // prev_rad + (n + 1) where n= radius increment (32 radiius too large)
+                        ['to-number', ['get', 'population'], 0], 
+                        10000, 2,       // population of 10,000
+                        100000, 4,      // 100k pop
+                        1000000, 7,     // 1M pop
+                        5000000, 11,    // 5M
+                        10000000, 16    // 10m
+                    ],
+                    
+                    // defining circle's color feature based on population size
+                    'circle-color': [
+                        'interpolate', ['linear'],
+                        ['to-number', ['get', 'population'], 0],
+                        0, '#fee5d9',      // 0 <= fee5d9_values < 10k
+                        10000, '#fcae91',
+                        100000, '#fb6a4a',
+                        1000000, '#de2d26',
+                        5000000, '#a50f15',
+                        10000000, '#67000d'
+                    ],
+                    'circle-stroke-width': 1,
+                    'circle-stroke-color': '#ffffff'
+                }
+            });
+            
+            // making dots interactive 
+            mymap.on('click', 'city-pop-layer', (event) => {
+                const feature = event.features[0];
+                const coordinates = feature.geometry.coordinates.slice(0, 2);
+
+                new mapboxgl.Popup()
+                    .setLngLat(coordinates)
+                    .setHTML(`<strong>City Population:</strong> ${feature.properties.population}
+                            <strong>City Name:</strong> ${feature.properties.accentcity}`) //adding city name to interactive popup
+                    .addTo(mymap);
+            });
+
+
+        });
+    </script>
+</body>
+</html>

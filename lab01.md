@@ -1,7 +1,7 @@
 # Lab 01: My Digital Geography Workspace
 
 ## Place of interest
-Seattle, Washington
+South Lake Union
 
 ## Geographic question
 "What is the spatial availability of (Lime) bike-share or scooter drop-offs in connection to rent/income level in neighborhoods?"
