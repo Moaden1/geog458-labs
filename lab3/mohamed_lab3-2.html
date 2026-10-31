@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lab 3: Mount Rainier Hydrography Towards King County</title>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@6.15.0/dist/maplibre-gl.css">
+  <style>
+    body { margin: 0; font: 14px/1.5 Arial, sans-serif; color: #182e3a; }
+    #map { position: absolute; inset: 0; }
+    #panel { position: absolute; top: 12px; left: 12px; padding: 16px;
+      width: 260px; max-width: calc(100% - 100px); background: white;
+    max-height: calc(100% - 80px); overflow: auto; border-radius: 6px; }
+    h1 { margin: 0 0 8px; font-size: 19px; }
+    p { margin: 8px 0; }
+    .ramp { height: 14px; background: linear-gradient(to right,
+      #f7fbff, #c8dcf0, #73b2d8, #2979b9, #08306b); }
+    .values { display: flex; justify-content: space-between; }
+    .maplibregl-popup-content { white-space: pre-line; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <section id="panel">
+    <h1>Rainier to Renton Elevation and Hydrography</h1>
+    <p>USGS and NHDPlus HR</p>
+    <p id="status">Step 1: map frame ready; add the basemap next.</p>
+    <div id="surface-control" hidden>
+      <label><input id="show-surface" type="checkbox" checked> Show elevation</label>
+    </div>
+    <div id="stream-control" hidden>
+      <label><input id="show-streams" type="checkbox" checked> Show streams</label>
+    </div>
+    <div id="legend" hidden>
+        <p><strong>Elevation (in meters)</strong></p>
+        <div class="ramp"></div>
+        <div class="values"><span>263</span><span>2328</span><span>4393</span></div>
+        <p>USGS Continous Surface.</p>
+    </div>
+  </section>
+
+  <script type="module">
+    import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.15.0/dist/maplibre-gl.mjs';
+
+    const map = new maplibregl.Map({
+      container: 'map',
+      style: {
+        version: 8,
+        sources: {},
+        layers: [{ id: 'background', type: 'background',
+          paint: { 'background-color': '#edf1f0' } }]
+      },
+      center: [-122.15, 47.35],
+      zoom: 10,
+      minZoom: 10,
+      maxZoom: 14,
+      maxBounds: [[-122.50, 46.80], [-121.70, 47.60]]
+    });
+    map.addControl(new maplibregl.NavigationControl());
+    map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }));
+
+    map.on('error', (event) => {
+      document.getElementById('status').textContent =
+        'Load error: check the file path and browser Console.';
+      console.error(event.error);
+    });
+
+    map.on('load', () => {
+      // Step 2:
+      map.addSource('basemap-tiles', {
+        type: 'raster',
+        tiles: ['assets/mapbox-independent/{z}/{x}/{y}.png'],
+        tileSize: 256,
+        scheme: 'xyz',
+        minzoom: 10,
+        maxzoom: 14,
+        bounds: [-122.50, 46.80, -121.70, 47.60],
+        attribution: '© Mapbox © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        });
+        map.addLayer({
+        id: 'basemap',
+        type: 'raster',
+        source: 'basemap-tiles',
+        paint: { 'raster-opacity': 1, 'raster-fade-duration': 0 }
+        });
+
+        document.getElementById('status').textContent =
+        'Step 2: check your Studio basemap; pan and zoom.';
+
+      // Step 3: insert the interpolation tile code here.
+      map.addSource('elevation-tiles', {
+        type: 'raster',
+        tiles: ['assets/elevation/{z}/{x}/{y}.png'],
+        tileSize: 256,
+        scheme: 'xyz',
+        minzoom: 10,
+        maxzoom: 14,
+        bounds: [-122.50, 46.80, -121.70, 47.60],
+        attribution: 'Elevation and Hydrography; Map by Mohamed A'
+        });
+        map.addLayer({
+        id: 'elevation-surface',
+        type: 'raster',
+        source: 'elevation-tiles',
+        paint: { 'raster-opacity': 0.7, 'raster-fade-duration': 0 } // 70% opacity
+        });
+
+        document.getElementById('surface-control').hidden = false;
+        document.getElementById('legend').hidden = false;
+        document.getElementById('show-surface').addEventListener('change', (event) => {
+        map.setLayoutProperty('elevation-surface', 'visibility',
+            event.target.checked ? 'visible' : 'none');
+        document.getElementById('legend').hidden = !event.target.checked;
+        });
+        document.getElementById('status').textContent =
+        'Step 3: toggle the interpolation to compare it with the basemap.';
+
+      // Step 4: insert the station and popup code here.
+      map.addSource('stream-data', {
+        type: 'geojson',
+        data: 'data/streams.geojson' //different file structure
+        });
+        map.addLayer({
+        id: 'streams',
+        type: 'line',
+        source: 'stream-data',
+        paint: {
+            //'circle-radius': 6, //line attribute
+            //'circle-color': '#18364d',
+            'line-color': '#005c99',
+            'line-width': 2
+        }
+        });
+
+        map.on('click', 'streams', (event) => {
+        const feature = event.features[0];
+        const stream = feature.properties;
+        new maplibregl.Popup()
+            .setLngLat(event.lngLat)
+            .setText([ //if no stream is where user clicks (coordinates reutnred) no stream exists there.
+            'Stream name: ' + (stream.gnis_name || 'No stream here!')
+            ].join('\n'))
+            .addTo(map);
+        });
+
+        map.on('mouseenter', 'streams', () => {
+        map.getCanvas().style.cursor = 'pointer';
+        });
+        map.on('mouseleave', 'streams', () => {
+        map.getCanvas().style.cursor = '';
+        });
+        document.getElementById('stream-control').hidden = false;
+        document.getElementById('show-streams').addEventListener('change', (event) => {
+        map.setLayoutProperty('streams', 'visibility',
+            event.target.checked ? 'visible' : 'none');
+        });
+        document.getElementById('status').textContent =
+        'Step 4: click a station to read its measured value.';
+    });
+  </script>
+</body>
+</html>
