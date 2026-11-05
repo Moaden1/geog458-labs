@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lab 4 — Pittsburgh trees</title>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.css" rel="stylesheet">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.js"></script>
+  <style>
+    body { margin: 0; padding: 0; }
+    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script>
+    mapboxgl.accessToken = 'pk.eyJ1IjoibW9hZGVuIiwiYSI6ImNtdms5cnBodTBwNG0yeHB4ZDR2ZWZwczIifQ.JqL18FAFo_Qk4YwNZZpMLA';
+    const map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/mapbox/light-v11', // customized/final: swaped to light basemap
+      projection: 'globe',
+      center: [-79.999732, 40.4374],
+      zoom: 11,
+      maxZoom: 15
+    });
+
+    map.addControl(new mapboxgl.FullscreenControl());
+    map.addControl(new mapboxgl.NavigationControl());
+
+    // This callback runs after the map style is ready. Keep its braces.
+    map.on('load', () => {
+        // [1.3] REPLACE THIS LINE WITH THE TREE SOURCE BLOCK.
+        map.setFog({});
+            map.addSource('trees', {
+            type: 'geojson',
+            data: 'data/trees.geojson'
+        });
+        // [1.4] REPLACE THIS LINE WITH THE TREE HEATMAP BLOCK.
+        map.addLayer({
+            'id': "trees-heat",
+            'type': "heatmap",
+            'source': "trees",
+            'maxzoom': 15,
+            'paint': {
+                'heatmap-weight': {
+                'property': "dbh",
+                'type': "exponential",
+                'stops': [[1, 0], [62, 1]]
+                },
+                'heatmap-intensity': {
+                'stops': [[11, 2], [15, 3]] // baseline [[11, 1], [15, 3]], higher/FINAL: [[11, 2], [15, 3]], lower: [[11, .5], [15, 3]]
+                },
+                'heatmap-color': [ //changed to light orange to red scaled heatmap
+                "interpolate", ["linear"], ["heatmap-density"],
+                0, "rgba(255,255,178,0)",
+                0.2, "rgb(254,204,92)",
+                0.4, "rgb(253,141,60)",
+                0.6, "rgb(240,59,32)",
+                0.8, "rgb(189,0,38)"
+                ],
+                'heatmap-radius': {
+                'stops': [[11, 22], [15, 20]] // baseline [[11, 15], [15, 20]], higher: [[11, 25], [15, 20]], lower: [[11, 5], [15, 20]]
+                },
+                'heatmap-opacity': {
+                'default': 1,
+                'stops': [[14, 1], [15, 0]]
+                }
+            }
+        });
+        // [1.5] REPLACE THIS LINE WITH THE TREE CIRCLE BLOCK. (kept after heatmap(above) so circles are drawn above heatmap)
+        map.addLayer({
+            'id': "trees-point",
+            'type': "circle",
+            'source': "trees",
+            'minzoom': 14,
+            'paint': {
+                'circle-radius': {
+                'property': "dbh",
+                'type': "exponential",
+                'stops': [
+                    [{ 'zoom': 15, 'value': 1 }, 5],
+                    [{ 'zoom': 15, 'value': 62 }, 10],
+                    [{ 'zoom': 22, 'value': 1 }, 20],
+                    [{ 'zoom': 22, 'value': 62 }, 50]
+                ]
+                },
+                'circle-color': {
+                'property': "dbh",
+                'type': "exponential",
+                'stops': [
+                    [0, "rgba(236,222,239,0)"],
+                    [10, "rgb(236,222,239)"],
+                    [20, "rgb(208,209,230)"],
+                    [30, "rgb(166,189,219)"],
+                    [40, "rgb(103,169,207)"],
+                    [50, "rgb(28,144,153)"],
+                    [60, "rgb(1,108,89)"]
+                ]
+                },
+                'circle-stroke-color': "white",
+                'circle-stroke-width': 1,
+                'circle-opacity': {
+                'stops': [[14, 0], [15, 1]]
+                }
+            }
+        });
+        // [1.6] REPLACE THIS LINE WITH THE TREE POPUP BLOCK.
+        map.on('click', 'trees-point', (event) => {
+            new mapboxgl.Popup()
+                .setLngLat(event.features[0].geometry.coordinates)
+                .setHTML(`<strong>DBH:</strong> ${event.features[0].properties.dbh}`)
+                .addTo(map);
+        }); // note: couldn't confirm 'working tree baseline — compare it with your assembled core map before adding the experiment below.' (expired link?)
+
+    }); // map.on(load-> ..) call bracket
+
+    // 1.7:
+    //  - testing 3 diff radius settings (larger and smaller than baseline) and observe which local concentrations remain distinct and which merge
+    //  -
+  </script>
+</body>
+</html>
